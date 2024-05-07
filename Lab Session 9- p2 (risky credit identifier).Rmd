@@ -1,0 +1,107 @@
+---
+title: "Lab Session 9 p2"
+output: html_notebook
+---
+
+```{r}
+# load data
+library(tidyverse)    
+credit <- read_csv("credit.csv")
+
+str(credit)
+view(credit)
+#Last column = 'default' Will use everything but last column as factors. 
+
+table(credit$savings_balance)  
+summary(credit$amount
+table(credit$default) #30% went into default
+```
+Stage 1) Split into test and train datasets
+```{r}
+RNGversion("3.5.2") # use an older random number generator to match the book
+set.seed(230) # use set.seed to use the same random number sequence as the tutorial
+train_sample <- sample(1000, 700)
+
+# split the data frames
+credit_train <- credit[train_sample, ]
+credit_test  <- credit[-train_sample, ]
+
+#Check if sets are balanced
+# check the proportion of class variable
+prop.table(table(credit_train$default))
+prop.table(table(credit_test$default))
+```
+Train Decision Model
+```{r}
+#install.packages("C50")
+library(C50)
+
+#The algorithm needs a factor type if the outcome variable as an input to the function, 
+credit_train$default<-as.factor(credit_train$default)
+credit_test$default<-as.factor(credit_test$default)
+#Train a Decision Tree Model
+credit_model <- C5.0(credit_train[-17], credit_train$default)
+summary(credit_model)
+```
+Stage Decision Tree Model
+```{r}
+#install.packages("C50")
+library(C50)
+#The 17th column in credit_train is the default class variable, so we need to exclude it from the training data frame.
+
+#The algorithm needs a factor type if the outcome variable as an input to the function, 
+credit_train$default<-as.factor(credit_train$default)
+credit_test$default<-as.factor(credit_test$default)
+#Train a Decision Tree Model
+credit_model <- C5.0(credit_train[-17], credit_train$default)
+
+summary(credit_model)
+#Out of decision tree errors- out of 700 records, 13.6% are errors.
+#Attribute usage: checking balance highest deciding variable (100%)
+```
+Plot tree
+```{r}
+plot(credit_model)
+```
+Sage 2: Validation Stage
+```{r}
+# create a factor vector of predictions on test data
+credit_pred <- predict(credit_model, credit_test)
+
+
+# cross tabulation of predicted versus actual classes
+#install.packages("gmodels")
+library(gmodels)
+CrossTable(credit_test$default, credit_pred,
+           prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE,
+           dnn = c('actual default', 'predicted default'))
+```
+Prune data
+```{r}
+credit_model2 <- C5.0(credit_train[-17], credit_train$default,
+                     control = C5.0Control(minCases = 20))
+plot(credit_model2)
+```
+Evaluate simplified tree
+```{r}
+credit_pred2 <- predict(credit_model2, credit_test)
+CrossTable(credit_test$default, credit_pred2,
+           prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE,
+           dnn = c('actual default', 'predicted default'))
+```
+
+
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
